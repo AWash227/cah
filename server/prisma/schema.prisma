@@ -1,0 +1,37 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["createMany"]
+}
+
+model deck {
+  id         Int         @id @default(autoincrement())
+  name       String
+  official   Boolean
+  blackCards blackcard[]
+  whiteCards whitecard[]
+}
+
+model blackcard {
+  id     Int    @id @default(autoincrement())
+  text   String
+  packId Int
+  pick   Int
+
+  deck deck @relation(references: [id], fields: [packId])
+}
+
+model whitecard {
+  id     Int    @id @default(autoincrement())
+  text   String
+  packId Int
+  deck   deck   @relation(references: [id], fields: [packId])
+
+}

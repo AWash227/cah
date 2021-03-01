@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Box, BoxProps, HStack, Text, Icon } from "@chakra-ui/react";
 import { FaCheck } from "react-icons/fa";
+import { blackcard, whitecard } from "../types";
 
 interface CardProps extends BoxProps {
-  card: { id: number; text: string; packId: number; pick?: number };
+  card: whitecard | blackcard;
   selected?: boolean;
   type?: "white" | "black";
   visible?: boolean;
@@ -77,7 +78,9 @@ const Card = (props: CardProps) => {
           {card.text}
         </Text>
       )}
-      {card.pick && type === "black" && (
+      {/**
+       * 
+      {card && card.pick && type === "black" && (
         <Text
           position="absolute"
           right={4}
@@ -89,6 +92,7 @@ const Card = (props: CardProps) => {
           Pick {card.pick}
         </Text>
       )}
+       */}
     </Box>
   );
 };

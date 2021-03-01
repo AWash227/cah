@@ -27,12 +27,40 @@ import { SocketContext, socket } from "./service";
 import Lobby from "./pages/Lobby";
 import { getPlayerFromLocalStorage } from "./helpers";
 import { setSyntheticLeadingComments } from "typescript";
+import { GameState, Player, whitecard } from "./types";
+
+const emptyGameState: GameState = {
+  players: [],
+  maxScore: 5,
+  decks: [],
+  owner: null,
+  rounds: [],
+  currentRound: -1,
+  winner: null,
+};
 
 function App() {
+  const [gameState, setGameState] = useState<GameState>(emptyGameState);
+
+  const handleGameChanged = useCallback((gameState: GameState) => {
+    console.log(gameState.players);
+    setGameState(gameState);
+  }, []);
+
+  const handlePlayerCreated = useCallback((player: Player) => {
+    window.localStorage.setItem("player", JSON.stringify(player));
+  }, []);
+
+  useEffect(() => {
+    socket.on("GAME_CHANGED", handleGameChanged);
+    socket.on("PLAYER_CREATED", handlePlayerCreated);
+    socket.emit("GET_GAME");
+  }, [socket]);
+
   return (
     <Box className="App" position="relative" overflow="hidden">
       <SocketContext.Provider value={socket}>
-        <Game />
+        <Game gameState={gameState} />
       </SocketContext.Provider>
     </Box>
   );
@@ -45,111 +73,54 @@ const cards = [
   { id: 4, text: "Yeep Yoop", packId: 0 },
 ];
 
-interface Round {
-  blackCard: { id: number; pick: number; packId: number; text: string };
-  stillPlaying: number[];
-  state: "PLAYING" | "JUDGING";
-  plays: any[];
-  czar: number;
-}
-
-interface WhiteCard {
-  id: number;
-  text: string;
-  packId: number;
-}
-
-const Game = () => {
+const Game = ({ gameState }: { gameState: GameState }) => {
   const socket = useContext(SocketContext);
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
-  const [round, setRound] = useState<Round | null>(null);
-  const [hand, setHand] = useState<WhiteCard[]>([]);
-  const [players, setPlayers] = useState<any[]>([]);
 
   const player = getPlayerFromLocalStorage();
+  const hand = player
+    ? gameState.players.find((gamePlayer) => gamePlayer.id === player.id)?.hand
+    : [];
 
-  const handleRoundChanged = useCallback(
-    (round: Round) => {
-      console.log(round);
-      socket?.emit("GET_HAND", player?.id);
-      setRound(round);
+  const round = gameState.rounds[gameState.currentRound];
+
+  const handleCzarClick = useCallback(
+    (playerId: string) => {
+      socket?.emit("JUDGE_PLAY", playerId);
     },
     [socket, player]
   );
 
-  const handleGameChanged = useCallback(
-    (round) => {
-      setRound(round);
-    },
-    [socket]
-  );
-
-  const handleCzarClick = useCallback(
-    (playerId: number) => {
-      console.log("SDFSDF");
-      if (round) {
-        if (round.czar === player?.id && round.state === "JUDGING") {
-          socket?.emit("CZAR_SELECT", playerId);
-        }
-      }
-    },
-    [round, socket, player]
-  );
-
-  const handleGetHand = useCallback((hand: WhiteCard[]) => setHand(hand), []);
-
-  const handleCardSelect = (card: WhiteCard) => {
-    if (round) {
-      if (round.blackCard.pick === 1) {
-        setSelectedCards(
-          selectedCards.includes(card.id)
-            ? selectedCards.filter((id) => card.id !== id)
-            : [card.id]
-        );
-      } else {
-        const canAddCard =
-          !selectedCards?.includes(card.id) &&
-          selectedCards?.length < round.blackCard.pick;
-        setSelectedCards(
-          canAddCard
-            ? [...selectedCards, card.id]
-            : selectedCards?.filter((id) => card.id !== id)
-        );
-      }
+  const handleCardSelect = (card: whitecard) => {
+    if (round.blackCard.pick === 1) {
+      setSelectedCards(
+        selectedCards.includes(card.id)
+          ? selectedCards.filter((id) => card.id !== id)
+          : [card.id]
+      );
+    } else {
+      const canAddCard =
+        !selectedCards?.includes(card.id) &&
+        selectedCards?.length < round.blackCard.pick;
+      setSelectedCards(
+        canAddCard
+          ? [...selectedCards, card.id]
+          : selectedCards?.filter((id) => card.id !== id)
+      );
     }
   };
 
-  const handleGetFullPlayer = useCallback(
-    (me) => {
-      localStorage.setItem("player", JSON.stringify(me));
-    },
-    [socket]
-  );
-
   const handleSubmitCard = useCallback(() => {
-    console.log("Boi");
-    if (selectedCards.length === round?.blackCard.pick) {
-      console.log("Submitting");
-      socket?.emit("SUBMIT_CARD", {
+    if (selectedCards.length === round.blackCard.pick) {
+      socket?.emit("SUBMIT_PLAY", {
         playerId: player?.id,
         cards: selectedCards,
       });
       setSelectedCards([]);
     }
-  }, [socket, round, round?.blackCard, selectedCards]);
+  }, [socket, gameState, selectedCards]);
 
-  useEffect(() => {
-    socket?.on("ROUND_CHANGED", handleRoundChanged);
-    socket?.emit("GET_HAND", player?.id);
-    socket?.on("HAND_FOUND", handleGetHand);
-    socket?.on("PLAYER_ADDED", handleGetFullPlayer);
-    socket?.emit("GET_GAME");
-    socket?.on("GAME_FOUND", handleGameChanged);
-    socket?.on("GAME_CHANGED", handleGameChanged);
-    socket?.on("GAME_STARTED", handleGameChanged);
-  }, [socket, handleRoundChanged]);
-
-  if (!round) return <Lobby />;
+  if (gameState.rounds.length <= 0) return <Lobby gameState={gameState} />;
 
   return (
     <Box position="relative" width="100%" height="100%">
@@ -178,7 +149,7 @@ const Game = () => {
                     key={card.id}
                     card={card}
                     type="white"
-                    visible={round.state === "JUDGING" ? true : false}
+                    visible={round.playersLeft.length === 0 ? false : true}
                   />
                 ))}
               </HStack>

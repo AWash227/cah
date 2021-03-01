@@ -1,165 +1,189 @@
-import { whitecard, blackcard } from "@prisma/client";
+import { PrismaClient, deck, whitecard, blackcard } from "@prisma/client";
 import CardService from "./CardService";
 
-interface Player {
-  id: number;
+export interface Player {
+  id: string;
   name: string;
 }
-interface GamePlayer extends Player {
+
+export interface GamePlayer extends Player {
   score: number;
   hand: whitecard[];
 }
-interface Play {
-  playerId: number;
+
+export interface Play {
+  playerId: string;
   cards: whitecard[];
 }
 
-interface Round {
-  blackCard: blackcard;
+class Round {
+  game: CAH;
+  blackCard: blackcard | null;
+  czar: Player | null;
   plays: Play[];
-  czar: number;
-  winner?: number;
-  stillPlaying: number[];
-  state: "PLAYING" | "JUDGING";
+  winner: Player | null;
+  playersLeft: string[];
+
+  constructor(game: CAH) {
+    this.game = game;
+    this.czar = this.game.players[
+      Math.round(Math.random() * this.game.players.length)
+    ];
+    this.blackCard = null;
+    this.plays = [];
+    this.winner = null;
+    this.playersLeft = this.game.players
+      .filter((player) => player.id !== this.czar?.id)
+      .map((player) => player.id);
+  }
+
+  getState() {
+    return {
+      blackCard: this.blackCard,
+      czar: this.czar,
+      plays: this.plays,
+      winner: this.winner,
+      playersLeft: this.playersLeft,
+    };
+  }
+
+  async setup() {
+    const topicCard = await this.game.cardPool.getRandomTopicCard();
+    this.blackCard = topicCard;
+  }
+
+  addPlay(play: Play) {
+    if (this.plays.map((play) => play.playerId).includes(play.playerId)) return;
+    this.plays.push(play);
+    this.playersLeft = this.playersLeft.filter((id) => id !== play.playerId);
+  }
+
+  async judgeRound(playerId: string) {
+    const winner = this.game.players.find((player) => player.id === playerId);
+    if (winner) {
+      this.winner = winner;
+      winner.score += 1;
+      if (winner.score >= this.game.maxScore) {
+        const potentialWinner = this.game.players.find(
+          (player) => player.id === playerId
+        );
+        if (potentialWinner) {
+          this.game.winner = potentialWinner;
+        }
+        this.game.endGame();
+      } else {
+        await this.game.addRound();
+      }
+    }
+  }
 }
 
-class Game {
-  cardPool: CardService;
-  deckIds: number[] = [];
-  players: GamePlayer[] = [];
-  rounds: Round[] = [];
-  currentRound: number = -1;
-  status: "LOBBY" | "IN-PROGRESS" | "ENDED" = "LOBBY";
-  winner: number | null = null;
-  maxScore: number = 5;
-  owner: Player | null = null;
+const prisma = new PrismaClient();
 
-  constructor(
-    deckIds: number[],
-    players: Player[],
-    maxScore: number,
-    owner: Player
-  ) {
-    this.deckIds = deckIds;
-    this.maxScore = maxScore;
-    players.forEach((player) =>
-      this.players.push({
+class CAH {
+  decks: deck[];
+  players: GamePlayer[];
+  owner: Player | null; //first person to connect becomes owner
+  maxScore: number;
+  rounds: Round[];
+  cardPool: CardService;
+  currentRound: number;
+  winner: Player | null;
+
+  maxCards: number = 7;
+
+  constructor() {
+    this.players = [];
+    this.maxScore = 5;
+    this.decks = [];
+    this.owner = null;
+    this.rounds = [];
+    this.currentRound = -1;
+    this.cardPool = new CardService(this.decks.map((deck) => deck.id));
+    this.winner = null;
+  }
+
+  getState() {
+    return {
+      players: this.players,
+      maxScore: this.maxScore,
+      decks: this.decks,
+      owner: this.owner,
+      rounds: this.rounds.map((round) => round.getState()),
+      currentRound: this.currentRound,
+      winner: null,
+    };
+  }
+
+  reset() {
+    this.players = [];
+    this.maxScore = 5;
+    this.decks = [];
+    this.currentRound = -1;
+    this.owner = null;
+    this.rounds = [];
+    this.cardPool = new CardService(this.decks.map((deck) => deck.id));
+    this.winner = null;
+  }
+
+  async addRound() {
+    const newRound = new Round(this);
+    await newRound.setup();
+    this.rounds.push(newRound);
+    this.currentRound += 1;
+    await this.addCards();
+  }
+
+  async endGame() {
+    this.reset();
+  }
+
+  async addCards() {
+    this.players.map(async (player) => {
+      const numberOfCardsToGet = this.maxCards - player.hand.length;
+      if (numberOfCardsToGet <= 0) return;
+      const newCards = await this.cardPool.getRandomCards(numberOfCardsToGet);
+      player.hand = [...player.hand, ...newCards];
+    });
+  }
+
+  async addDeck(deckId: number) {
+    const deck = await prisma.deck.findFirst({ where: { id: deckId } });
+    if (deck) {
+      this.decks.push(deck);
+      this.cardPool = new CardService(this.decks.map((deck) => deck.id));
+    }
+  }
+
+  removeDeck(deckId: number) {
+    this.decks = this.decks.filter((deck) => deck.id !== deckId);
+    this.cardPool = new CardService(this.decks.map((deck) => deck.id));
+  }
+
+  addPlayer(player: Player) {
+    if (!this.players.map((player) => player.id).includes(player.id)) {
+      const newPlayer = {
         id: player.id,
         name: player.name,
         score: 0,
         hand: [],
-      })
-    );
-    this.owner = owner;
-    this.cardPool = new CardService(this.deckIds);
-  }
-
-  getPlayer(id: number) {
-    return this.players.find((player) => player.id === id);
-  }
-
-  getCurrentRound() {
-    return this.rounds[this.currentRound];
-  }
-
-  async startGame() {
-    this.status = "IN-PROGRESS";
-    // Give everyone a hand of cards
-    await Promise.all(
-      this.players.map(async (player) => {
-        player.hand = await this.cardPool.getRandomHand();
-      })
-    );
-  }
-
-  async judgeRound(playerId: number) {
-    this.rounds[this.currentRound].winner = playerId;
-    const playerIndex = this.players.findIndex(
-      (player) => player.id === playerId
-    );
-    this.players[playerIndex].score += 1;
-
-    if (this.players[playerIndex].score >= this.maxScore) {
-      this.status = "ENDED";
-      this.winner = playerId;
-    } else {
-      await this.startNewRound();
+      };
+      this.players = this.players.concat(newPlayer);
+      this.owner = newPlayer;
     }
   }
 
-  async confirmPlay(playerId: number, cards: number[]) {
-    if (!this.rounds[this.currentRound].stillPlaying.includes(playerId)) {
-      console.log(`player: ${playerId} already played this round`);
-      return;
-    }
-    const filledCards = await this.cardPool.getCards(cards);
-    const newPlay = <Play>{ playerId, cards: filledCards };
-    // Add the play to the current round
-    this.rounds[this.currentRound].plays.push(newPlay);
-
-    // Remove them from the still playing list
-    this.rounds[this.currentRound].stillPlaying = this.rounds[
-      this.currentRound
-    ].stillPlaying.filter((id) => id !== playerId);
-
-    // Remove cards from players hands
-    const playerIndex = this.players.findIndex(
-      (player) => player.id === playerId
-    );
-    this.players[playerIndex].hand = this.players[playerIndex].hand.filter(
-      (item) => !cards.includes(item.id)
-    );
-
-    if (this.rounds[this.currentRound].stillPlaying.length === 0) {
-      this.rounds[this.currentRound].state = "JUDGING";
-    }
-
-    console.log("still playing", this.rounds[this.currentRound].stillPlaying);
+  removePlayer(playerId: string) {
+    this.players = this.players.filter((player) => player.id === playerId);
   }
 
-  async givePlayersNewCards() {
-    // Go through each player and if they have less than 8 cards, give them another
-    this.players.map(async (player) => {
-      if (player.hand.length < 8) {
-        const newCards = await this.cardPool.getRandomCards(
-          8 - player.hand.length
-        );
-        player.hand = player.hand.concat(newCards);
-      }
-    });
+  setOwner(player: Player) {
+    this.owner = player;
   }
 
-  async startNewRound() {
-    // Select a black card
-    const blackCard = await this.cardPool.getRandomTopicCard();
-
-    //Select a czar
-    const czar = 1; //this.players[Math.round(Math.random() * this.players.length)].id;
-
-    // Set everyone to playing unless they are czar
-    const stillPlaying = this.players
-      .filter((player) => player.id !== czar)
-      .map((player) => player.id);
-
-    const newRound: Round = {
-      plays: [],
-      blackCard,
-      czar,
-      stillPlaying,
-      state: "PLAYING",
-    };
-
-    // Create new round
-    this.rounds.push(newRound);
-
-    // Change current round
-    this.currentRound += 1;
-
-    await this.givePlayersNewCards();
-  }
-
-  async endRound(playerId: number) {
-    this.rounds[this.currentRound].winner = playerId;
+  setMaxScore(score: number) {
+    this.maxScore = score;
   }
 }
-export default Game;
+
+export default CAH;

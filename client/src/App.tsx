@@ -9,6 +9,10 @@ import {
   HStack,
   Icon,
   Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalOverlay,
   SimpleGrid,
   Stack,
   Table,
@@ -26,8 +30,7 @@ import { FaCheckDouble } from "react-icons/fa";
 import { SocketContext, socket } from "./service";
 import Lobby from "./pages/Lobby";
 import { getPlayerFromLocalStorage } from "./helpers";
-import { setSyntheticLeadingComments } from "typescript";
-import { GameState, Player, whitecard } from "./types";
+import { GamePlayer, GameState, Player, whitecard } from "./types";
 
 const emptyGameState: GameState = {
   players: [],
@@ -41,52 +44,83 @@ const emptyGameState: GameState = {
 
 function App() {
   const [gameState, setGameState] = useState<GameState>(emptyGameState);
+  const [hand, setHand] = useState<whitecard[]>([]);
 
   const handleGameChanged = useCallback((gameState: GameState) => {
     console.log(gameState.players);
     setGameState(gameState);
+    const player = getPlayerFromLocalStorage();
+    if (player) {
+      socket.emit("GET_HAND", player.id);
+    }
+
+    console.log("DECKS", gameState.decks);
   }, []);
 
   const handlePlayerCreated = useCallback((player: Player) => {
     window.localStorage.setItem("player", JSON.stringify(player));
   }, []);
 
+  const handleHandFound = useCallback(
+    (hand: whitecard[]) => {
+      setHand(hand);
+    },
+    [setHand]
+  );
+
   useEffect(() => {
     socket.on("GAME_CHANGED", handleGameChanged);
     socket.on("PLAYER_CREATED", handlePlayerCreated);
     socket.emit("GET_GAME");
+    socket.on("HAND_FOUND", handleHandFound);
   }, [socket]);
 
   return (
     <Box className="App" position="relative" overflow="hidden">
       <SocketContext.Provider value={socket}>
-        <Game gameState={gameState} />
+        <Game gameState={gameState} hand={hand} />
       </SocketContext.Provider>
     </Box>
   );
 }
 
-const cards = [
-  { id: 1, text: "Hi Ho", packId: 0 },
-  { id: 2, text: "He Ho", packId: 0 },
-  { id: 3, text: "YI YIP", packId: 0 },
-  { id: 4, text: "Yeep Yoop", packId: 0 },
-];
-
-const Game = ({ gameState }: { gameState: GameState }) => {
+const Game = ({
+  gameState,
+  hand,
+}: {
+  gameState: GameState;
+  hand: whitecard[];
+}) => {
   const socket = useContext(SocketContext);
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [player, setPlayer] = useState<Player | null>(null);
 
-  const player = getPlayerFromLocalStorage();
-  const hand = player
-    ? gameState.players.find((gamePlayer) => gamePlayer.id === player.id)?.hand
-    : [];
+  const [round, setRound] = useState<any>(
+    gameState.rounds[gameState.currentRound]
+  );
+  useEffect(() => {
+    if (gameState.rounds.length === 0) {
+      setRound(null);
+    } else {
+      const newRoundState = gameState.rounds[gameState.currentRound];
+      if (newRoundState) {
+        setRound(newRoundState);
+      }
+    }
+  }, [gameState, setRound]);
 
-  const round = gameState.rounds[gameState.currentRound];
+  useEffect(() => {
+    const newPlayer = getPlayerFromLocalStorage();
+    if (newPlayer) {
+      setPlayer(newPlayer);
+    }
+  }, [setPlayer]);
 
   const handleCzarClick = useCallback(
     (playerId: string) => {
-      socket?.emit("JUDGE_PLAY", playerId);
+      if (player) {
+        socket?.emit("JUDGE_PLAY", { playerId, judgedById: player.id });
+      }
     },
     [socket, player]
   );
@@ -101,6 +135,7 @@ const Game = ({ gameState }: { gameState: GameState }) => {
     } else {
       const canAddCard =
         !selectedCards?.includes(card.id) &&
+        round.blackCard.pick &&
         selectedCards?.length < round.blackCard.pick;
       setSelectedCards(
         canAddCard
@@ -120,7 +155,39 @@ const Game = ({ gameState }: { gameState: GameState }) => {
     }
   }, [socket, gameState, selectedCards]);
 
-  if (gameState.rounds.length <= 0) return <Lobby gameState={gameState} />;
+  const handleRestartGame = useCallback(() => {
+    socket?.emit("RESTART_GAME");
+  }, []);
+
+  if (gameState.winner)
+    return (
+      <Modal isOpen={true} onClose={() => {}}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalBody>
+            <Flex
+              width="100%"
+              height="100%"
+              align="center"
+              justify="center"
+              p={4}
+            >
+              <Stack spacing={6}>
+                <Heading size="lg">{`${gameState.winner.name} Won!`}</Heading>
+                <Button
+                  colorScheme="blue"
+                  size="lg"
+                  onClick={handleRestartGame}
+                >
+                  Restart Game
+                </Button>
+              </Stack>
+            </Flex>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  else if (!round) return <Lobby gameState={gameState} />;
 
   return (
     <Box position="relative" width="100%" height="100%">
@@ -149,7 +216,7 @@ const Game = ({ gameState }: { gameState: GameState }) => {
                     key={card.id}
                     card={card}
                     type="white"
-                    visible={round.playersLeft.length === 0 ? false : true}
+                    visible={round.playersLeft.length === 0}
                   />
                 ))}
               </HStack>
@@ -170,36 +237,101 @@ const Game = ({ gameState }: { gameState: GameState }) => {
         bgColor="gray.100"
       >
         <Grid templateColumns={"1fr 3fr"}>
-          <Box height="100%">
-            <Flex justify="space-between" align="center" p={2}>
-              <Text fontWeight="bold">Your Cards</Text>
-              <Button
-                size="sm"
-                colorScheme="blue"
-                leftIcon={<Icon as={FaCheckDouble} />}
-                onClick={handleSubmitCard}
-              >
-                Confirm Move
-              </Button>
-            </Flex>
-
-            <Box height="100%">
-              <Flex height="100%" justify="center">
-                {hand &&
-                  hand.map((card) => (
-                    <Card
-                      key={card.id}
-                      card={card}
-                      onClick={() => handleCardSelect(card)}
-                      selected={selectedCards.includes(card.id)}
-                    />
-                  ))}
+          <Players
+            players={gameState.players}
+            isStillPlaying={(playerId: string): boolean =>
+              round.playersLeft.includes(playerId)
+            }
+            isCzar={(playerId: string): boolean => round.czar.id === playerId}
+          />
+          {console.log("Players Left", round.playersLeft)}
+          <Box height="100%" position="relative">
+            {round.czar.id === player?.id ? (
+              <Flex width="100%" height="100%" justify="center" align="center">
+                <Text fontWeight="bold">You are the Card Czar</Text>
               </Flex>
-            </Box>
+            ) : player && !round.playersLeft.includes(player.id) ? (
+              <Flex width="100%" height="100%" justify="center" align="center">
+                <Text fontWeight="bold">
+                  You've already played a card this round.
+                </Text>
+              </Flex>
+            ) : (
+              <>
+                <Flex justify="space-between" align="center" p={2}>
+                  <Text fontWeight="bold">Your Cards</Text>
+                  <Button
+                    size="sm"
+                    colorScheme="blue"
+                    leftIcon={<Icon as={FaCheckDouble} />}
+                    onClick={handleSubmitCard}
+                  >
+                    Confirm Move
+                  </Button>
+                </Flex>
+
+                <Box height="100%">
+                  <Flex height="100%" justify="center">
+                    {hand &&
+                      player?.id &&
+                      hand.map((card, i) => (
+                        <Card
+                          key={card.id}
+                          card={card}
+                          onClick={() => handleCardSelect(card)}
+                          selected={selectedCards.includes(card.id)}
+                          index={
+                            selectedCards.findIndex(
+                              (sCard) => sCard === card.id
+                            ) + 1
+                          }
+                        />
+                      ))}
+                  </Flex>
+                </Box>
+              </>
+            )}
           </Box>
         </Grid>
       </Box>
     </Box>
+  );
+};
+
+const Players = ({
+  players,
+  isStillPlaying,
+  isCzar,
+}: {
+  players: GamePlayer[];
+  isStillPlaying: (playerId: string) => boolean;
+  isCzar: (playerId: string) => boolean;
+}) => {
+  return (
+    <Table size="sm">
+      <Thead>
+        <Tr>
+          <Th>Name</Th>
+          <Th>Score</Th>
+          <Th>Status</Th>
+        </Tr>
+      </Thead>
+      <Tbody>
+        {players.map((player) => (
+          <Tr key={player.id}>
+            <Td>{player.name}</Td>
+            <Td>{player.score}</Td>
+            <Td>
+              {isCzar(player.id)
+                ? "Card Czar"
+                : isStillPlaying(player.id)
+                ? "Playing"
+                : "Done"}
+            </Td>
+          </Tr>
+        ))}
+      </Tbody>
+    </Table>
   );
 };
 

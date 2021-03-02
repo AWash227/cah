@@ -18,12 +18,13 @@ import {
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 import Card from "../components/Card";
+import Deck from "../components/Deck";
 import { getPlayerFromLocalStorage } from "../helpers";
 import { SocketContext } from "../service";
-import { Deck, GameState, Player } from "../types";
+import { Deck as IDeck, GameState, Player } from "../types";
 
 export interface ILobby {
-  decks: Deck[];
+  decks: IDeck[];
   players: Player[];
   maxScore: number;
   owner: Player;
@@ -31,10 +32,6 @@ export interface ILobby {
 
 const Lobby = ({ gameState }: { gameState: GameState }) => {
   const socket: Socket | null = useContext(SocketContext);
-
-  const handleStartGame = useCallback(() => {
-    socket?.emit("START_GAME");
-  }, []);
 
   // After joining the lobby, get the player returned
   // and save that to localStorage so you can stay as that person
@@ -45,10 +42,9 @@ const Lobby = ({ gameState }: { gameState: GameState }) => {
   return (
     <Box width="100%" height="100%">
       <LobbyHeader />
-      <LobbySettings gameState={gameState} />
       <Stack spacing={4} maxWidth="50rem" mx="auto">
         <LobbyJoinForm players={gameState.players} />
-        <Button onClick={handleStartGame}>Start Game</Button>
+        <LobbySettings gameState={gameState} />
         <LobbyPlayers players={gameState.players} />
       </Stack>
     </Box>
@@ -56,26 +52,79 @@ const Lobby = ({ gameState }: { gameState: GameState }) => {
 };
 
 const LobbySettings = ({ gameState }: { gameState: GameState }) => {
-  const player = getPlayerFromLocalStorage();
+  const socket: Socket | null = useContext(SocketContext);
+  const [player, setPlayer] = useState<Player | null>(null);
   const [maxScore, setMaxScore] = useState<number>(gameState.maxScore || 5);
+  const [possibleDecks, setPossibleDecks] = useState<IDeck[]>([]);
   const [decks, setDecks] = useState<number[]>(
     gameState.decks.map((deck) => deck.id) || []
   );
   // If the player is the lobby owner, show settings
-  if (player) {
+
+  useEffect(() => {
+    setDecks(gameState.decks.map((deck) => deck.id));
+  }, [gameState, setDecks]);
+
+  const handleDecksFound = useCallback((decks: any) => {
+    setPossibleDecks(decks);
+  }, []);
+
+  const handleChangeSettings = useCallback(
+    (e: any) => {
+      e.preventDefault();
+      socket?.emit("CHANGE_SETTINGS", { maxScore, decks });
+    },
+    [maxScore, decks]
+  );
+
+  useEffect(() => {
+    const newPlayer = getPlayerFromLocalStorage();
+    if (newPlayer) {
+      setPlayer(newPlayer);
+    }
+    socket?.emit("GET_DECKS");
+    socket?.on("DECKS_FOUND", handleDecksFound);
+  }, []);
+
+  const handleStartGame = useCallback(() => {
+    socket?.emit("START_GAME");
+  }, []);
+
+  if (player && gameState.owner?.id === player.id) {
     return (
-      <form>
-        <Select
-          onChange={(e) => setMaxScore(parseInt(e.target.value))}
-          value={maxScore}
-        >
-          <option value={5}>5</option>
-          <option value={10}>10</option>
-          <option value={15}>15</option>
-          <option value={20}>20</option>
-          <option value={25}>25</option>
-        </Select>
-      </form>
+      <>
+        <form onSubmit={handleChangeSettings}>
+          <Button onClick={handleStartGame}>Start Game</Button>
+          <FormLabel>Max Score</FormLabel>
+          <Select
+            onChange={(e) => setMaxScore(parseInt(e.target.value))}
+            value={maxScore}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={20}>20</option>
+            <option value={25}>25</option>
+          </Select>
+          <Flex wrap="wrap" p={2} overflowY="auto" maxH="15rem">
+            {possibleDecks.map((deck) => (
+              <Deck
+                key={deck.id}
+                deck={deck}
+                onClick={() =>
+                  setDecks((decks) =>
+                    decks.includes(deck.id)
+                      ? decks.filter((sDeck) => sDeck !== deck.id)
+                      : [...decks, deck.id]
+                  )
+                }
+                selected={decks.includes(deck.id)}
+              />
+            ))}
+          </Flex>
+          <Button type="submit">Update Settings</Button>
+        </form>
+      </>
     );
   }
   return null;
@@ -131,9 +180,11 @@ const LobbyJoinForm = ({
             placeholder="Insert Witty Name Here..."
           />
         )}
-        <Button flex={1} colorScheme="blue" type="submit">
-          Join
-        </Button>
+        {player && !players.map((player) => player.id).includes(player.id) && (
+          <Button flex={1} colorScheme="blue" type="submit">
+            Create Account
+          </Button>
+        )}
       </HStack>
     </form>
   );

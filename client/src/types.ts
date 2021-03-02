@@ -1,6 +1,6 @@
 export interface Deck {
   id: number;
-  title: string;
+  name: string;
   official: boolean;
 }
 
@@ -18,8 +18,8 @@ export interface whitecard {
 export interface blackcard {
   id: number;
   text: string;
-  packId: string;
-  pick: number;
+  packId: number;
+  pick?: number;
 }
 
 export interface GamePlayer extends Player {
@@ -34,7 +34,7 @@ export interface Play {
 
 export interface Round {
   blackCard: blackcard;
-  czar: Player | null;
+  czar: Player;
   plays: Play[];
   winner: Player | null;
   playersLeft: string[];

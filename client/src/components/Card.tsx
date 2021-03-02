@@ -4,10 +4,11 @@ import { FaCheck } from "react-icons/fa";
 import { blackcard, whitecard } from "../types";
 
 interface CardProps extends BoxProps {
-  card: whitecard | blackcard;
+  card: whitecard & blackcard;
   selected?: boolean;
   type?: "white" | "black";
   visible?: boolean;
+  index?: number;
 }
 
 const Card = (props: CardProps) => {
@@ -20,7 +21,8 @@ const Card = (props: CardProps) => {
 
   return (
     <Box
-      p={6}
+      px={6}
+      py={8}
       boxShadow="md"
       w={175}
       h={225}
@@ -72,14 +74,38 @@ const Card = (props: CardProps) => {
             <Text>Selected</Text>
           </HStack>
         </Box>
+        {props.index && (
+          <Box
+            position="absolute"
+            bottom={0}
+            right={0}
+            px={2}
+            py={1}
+            bgColor="blue.500"
+            color="white"
+            fontSize="md"
+            fontWeight="bold"
+            borderTopLeftRadius={5}
+            borderColor="blue.500"
+          >
+            <HStack>
+              <Text fontSize="xs">{props.index}</Text>
+            </HStack>
+          </Box>
+        )}
       </Box>
       {visible && (
-        <Text fontSize="sm" fontWeight="bold" overflowY="auto">
+        <Text
+          width="100%"
+          height="100%"
+          overflowY="auto"
+          fontSize="sm"
+          fontWeight="bold"
+          pb={card.pick ? 8 : 0}
+        >
           {card.text}
         </Text>
       )}
-      {/**
-       * 
       {card && card.pick && type === "black" && (
         <Text
           position="absolute"
@@ -92,7 +118,6 @@ const Card = (props: CardProps) => {
           Pick {card.pick}
         </Text>
       )}
-       */}
     </Box>
   );
 };

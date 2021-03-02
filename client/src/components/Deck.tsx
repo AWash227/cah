@@ -1,9 +1,10 @@
 import React from "react";
 import { Box, BoxProps, HStack, Text, Icon } from "@chakra-ui/react";
 import { FaCheck } from "react-icons/fa";
+import { Deck as IDeck } from "../types";
 
 interface DeckProps extends BoxProps {
-  deck: { id: number; name: string; official: boolean };
+  deck: IDeck;
   selected?: boolean;
 }
 
@@ -12,9 +13,10 @@ const Deck = (props: DeckProps) => {
   return (
     <Box
       p={6}
+      m={4}
       boxShadow="md"
-      w={175}
-      h={225}
+      w={175 / 2}
+      h={225 / 2}
       borderRadius={5}
       textAlign="center"
       display="flex"
@@ -62,13 +64,13 @@ const Deck = (props: DeckProps) => {
           </HStack>
         </Box>
       </Box>
-      <Text fontSize="sm" fontWeight="bold">
+      <Text fontSize="xx-small" fontWeight="bold">
         {deck.name}
       </Text>
       {deck.official && (
         <Text
           _groupHover={{ right: 2, bottom: 2 }}
-          fontSize="xs"
+          fontSize="xx-small"
           position="absolute"
           right={4}
           bottom={4}

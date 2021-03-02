@@ -1,8 +1,8 @@
 import { Player } from "./types";
 
 export const getPlayerFromLocalStorage = (): Player | null => {
-  if (typeof localStorage.getItem("player") !== "undefined") {
-    const possiblePlayer = localStorage.getItem("player");
+  if (typeof window.localStorage.getItem("player") !== "undefined") {
+    const possiblePlayer = window.localStorage.getItem("player");
     if (possiblePlayer) {
       return JSON.parse(possiblePlayer);
     }

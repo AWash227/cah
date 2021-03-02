@@ -201,7 +201,7 @@ const Game = ({
               </Heading>
               {round.blackCard && <Card type="black" card={round.blackCard} />}
             </Box>
-            {round.plays.map((play) => (
+            {round.plays.map((play: any) => (
               <HStack
                 key={play.playerId}
                 spacing={-50}

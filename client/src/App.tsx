@@ -186,16 +186,18 @@ const Game = ({
               p={4}
             >
               <Stack spacing={6}>
-                <Heading size="lg">{`${
+                <Heading size="md">{`${
                   gameState.rounds[gameState.currentRound].winner
                 } Won!`}</Heading>
-                <Button
-                  colorScheme="blue"
-                  size="lg"
-                  onClick={handleRestartGame}
-                >
-                  Restart Game
-                </Button>
+                {round.plays
+                  .find(
+                    (play: any) =>
+                      play.playerId ==
+                      gameState.rounds[gameState.currentRound]?.winner?.id
+                  )
+                  .cards.map((card: any) => (
+                    <Card type="white" card={card} />
+                  ))}
               </Stack>
             </Flex>
           </ModalBody>

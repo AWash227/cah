@@ -94,6 +94,7 @@ const Game = ({
   const socket = useContext(SocketContext);
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [player, setPlayer] = useState<Player | null>(null);
+  const [roundWinModalOpen, setRoundWinModalOpen] = useState(false);
 
   const [round, setRound] = useState<any>(
     gameState.rounds[gameState.currentRound]
@@ -108,6 +109,18 @@ const Game = ({
       }
     }
   }, [gameState, setRound]);
+
+  const handleRoundWin = useCallback(() => {
+    setRoundWinModalOpen(true);
+    const timeout = setTimeout(() => {
+      setRoundWinModalOpen(false);
+    }, 3000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    socket?.on("ROUND_WIN", handleRoundWin);
+  }, [socket]);
 
   useEffect(() => {
     const newPlayer = getPlayerFromLocalStorage();
@@ -192,6 +205,33 @@ const Game = ({
   return (
     <Box position="relative" width="100%" height="100%">
       {/* Board Area */}
+      <Modal isOpen={roundWinModalOpen} onClose={() => {}}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalBody>
+            <Flex
+              width="100%"
+              height="100%"
+              align="center"
+              justify="center"
+              p={4}
+            >
+              <Stack spacing={6}>
+                <Heading size="lg">{`${
+                  gameState.rounds[gameState.currentRound].winner
+                } Won!`}</Heading>
+                <Button
+                  colorScheme="blue"
+                  size="lg"
+                  onClick={handleRestartGame}
+                >
+                  Restart Game
+                </Button>
+              </Stack>
+            </Flex>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
       <Box width="100%">
         <Stack spacing={2}>
           <HStack spacing={2}>

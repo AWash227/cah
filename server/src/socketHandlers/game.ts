@@ -89,6 +89,7 @@ const handleGameRequests = (game: Game, io: Server, socket: Socket) => {
         args.judgedById
       );
       io.emit("GAME_CHANGED", game.getState());
+      io.emit("ROUND_WIN", game.rounds[game.currentRound].winner);
     }
   );
 

@@ -220,11 +220,11 @@ const Game = ({
             >
               <Stack spacing={6}>
                 <Heading size="md">{`${round.winner?.name} Won!`}</Heading>
-                {round.plays
-                  .find(
+                {round?.plays
+                  ?.find(
                     (play: any) =>
                       play.playerId ==
-                      gameState.rounds[gameState.currentRound]?.winner?.id
+                      gameState?.rounds[gameState.currentRound]?.winner?.id
                   )
                   .cards.map((card: any) => (
                     <Card type="white" card={card} />

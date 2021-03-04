@@ -11,6 +11,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use("/api", api);
+app.use(express.static('build'));
 
 // Each Player gets a hand of 5 cards up to 8
 
@@ -28,4 +29,5 @@ io.on("connection", (socket: Socket) => {
   handleGameRequests(game, io, socket);
 });
 
-httpServer.listen(5000);
+
+httpServer.listen(80);

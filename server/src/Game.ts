@@ -108,7 +108,7 @@ class CAH {
   currentRound: number;
   winner: Player | null;
 
-  maxCards: number = 5;
+  maxCards: number = 7;
   czarIterator: number = -1;
 
   constructor() {

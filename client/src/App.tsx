@@ -220,15 +220,16 @@ const Game = ({
             >
               <Stack spacing={6}>
                 <Heading size="md">{`${round.winner?.name} Won!`}</Heading>
-                {round?.plays
-                  ?.find(
-                    (play: any) =>
-                      play.playerId ==
-                      gameState?.rounds[gameState.currentRound]?.winner?.id
-                  )
-                  .cards.map((card: any) => (
-                    <Card type="white" card={card} />
-                  ))}
+                {round &&
+                  round?.plays
+                    ?.find(
+                      (play: any) =>
+                        play.playerId ==
+                        gameState?.rounds[gameState.currentRound]?.winner?.id
+                    )
+                    .cards.map((card: any) => (
+                      <Card type="white" card={card} />
+                    ))}
               </Stack>
             </Flex>
           </ModalBody>

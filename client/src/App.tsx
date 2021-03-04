@@ -186,18 +186,16 @@ const Game = ({
               p={4}
             >
               <Stack spacing={6}>
-                <Heading size="md">{`${
+                <Heading size="lg">{`${
                   gameState.rounds[gameState.currentRound].winner
                 } Won!`}</Heading>
-                {round.plays
-                  .find(
-                    (play: any) =>
-                      play.playerId ==
-                      gameState.rounds[gameState.currentRound]?.winner?.id
-                  )
-                  .cards.map((card: any) => (
-                    <Card type="white" card={card} />
-                  ))}
+                <Button
+                  colorScheme="blue"
+                  size="lg"
+                  onClick={handleRestartGame}
+                >
+                  Restart Game
+                </Button>
               </Stack>
             </Flex>
           </ModalBody>
@@ -221,16 +219,16 @@ const Game = ({
               p={4}
             >
               <Stack spacing={6}>
-                <Heading size="lg">{`${
-                  gameState.rounds[gameState.currentRound].winner
-                } Won!`}</Heading>
-                <Button
-                  colorScheme="blue"
-                  size="lg"
-                  onClick={handleRestartGame}
-                >
-                  Restart Game
-                </Button>
+                <Heading size="md">{`${round.winner?.name} Won!`}</Heading>
+                {round.plays
+                  .find(
+                    (play: any) =>
+                      play.playerId ==
+                      gameState.rounds[gameState.currentRound]?.winner?.id
+                  )
+                  .cards.map((card: any) => (
+                    <Card type="white" card={card} />
+                  ))}
               </Stack>
             </Flex>
           </ModalBody>

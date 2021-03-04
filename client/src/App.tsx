@@ -186,7 +186,9 @@ const Game = ({
               p={4}
             >
               <Stack spacing={6}>
-                <Heading size="lg">{`${gameState.winner.name} Won!`}</Heading>
+                <Heading size="lg">{`${
+                  gameState.rounds[gameState.currentRound].winner
+                } Won!`}</Heading>
                 <Button
                   colorScheme="blue"
                   size="lg"

@@ -84,12 +84,18 @@ const handleGameRequests = (game: Game, io: Server, socket: Socket) => {
   socket.on(
     "JUDGE_PLAY",
     async (args: { playerId: string; judgedById: string }) => {
+      io.emit("ROUND_WIN", {
+        winner: game.players.find((player) => player.id === args.playerId),
+        cards:
+          game.rounds[game.currentRound].plays.find(
+            (play) => play.playerId === args.playerId
+          )?.cards || [],
+      });
       await game.rounds[game.currentRound].judgeRound(
         args.playerId,
         args.judgedById
       );
       io.emit("GAME_CHANGED", game.getState());
-      io.emit("ROUND_WIN", game.rounds[game.currentRound].winner);
     }
   );
 

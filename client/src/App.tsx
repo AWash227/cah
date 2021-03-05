@@ -11,6 +11,7 @@ import {
   Input,
   Modal,
   ModalBody,
+  ModalCloseButton,
   ModalContent,
   ModalOverlay,
   SimpleGrid,
@@ -22,6 +23,7 @@ import {
   Th,
   Thead,
   Tr,
+  useTimeout,
 } from "@chakra-ui/react";
 import axios from "axios";
 import Deck from "./components/Deck";
@@ -31,6 +33,7 @@ import { SocketContext, socket } from "./service";
 import Lobby from "./pages/Lobby";
 import { getPlayerFromLocalStorage } from "./helpers";
 import { GamePlayer, GameState, Player, whitecard } from "./types";
+import { Socket } from "socket.io-client";
 
 const emptyGameState: GameState = {
   players: [],
@@ -207,35 +210,8 @@ const Game = ({
   return (
     <Box position="relative" width="100%" height="100%">
       {/* Board Area */}
-      <Modal isOpen={roundWinModalOpen} onClose={() => {}}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalBody>
-            <Flex
-              width="100%"
-              height="100%"
-              align="center"
-              justify="center"
-              p={4}
-            >
-              <Stack spacing={6}>
-                <Heading size="md">{`${round.winner?.name} Won!`}</Heading>
-                {round &&
-                  round?.plays
-                    ?.find(
-                      (play: any) =>
-                        play.playerId ==
-                        gameState?.rounds[gameState.currentRound]?.winner?.id
-                    )
-                    .cards.map((card: any) => (
-                      <Card type="white" card={card} />
-                    ))}
-              </Stack>
-            </Flex>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
       <Box width="100%">
+        <RoundWinnerModal />
         <Stack spacing={2}>
           <HStack spacing={2}>
             <Box px={4}>
@@ -378,48 +354,46 @@ const Players = ({
   );
 };
 
-const DeckSelection = () => {
-  const [decks, setDecks] = useState([]);
+const RoundWinnerModal = () => {
+  const Socket: Socket | null = useContext(SocketContext);
+  const [open, setOpen] = useState(false);
+  const [winner, setWinner] = useState<any>(null);
+  const [cards, setCards] = useState<any[]>([]);
+
+  const handleRoundWin = useCallback(
+    (args: { winner: any; cards: any[] }) => {
+      setWinner(args.winner);
+      setOpen(true);
+      setCards(args.cards);
+    },
+    [setWinner]
+  );
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/decks")
-      .then((res) => setDecks(res.data))
-      .catch((err) => console.error(err));
-  }, []);
-
-  const [selectedDecks, setSelectedDecks] = useState<number[]>([]);
-
-  const selectDeck = (id: number) => setSelectedDecks(selectedDecks.concat(id));
-  const deselectDeck = (id: number) =>
-    setSelectedDecks((selectedDecks) =>
-      selectedDecks.filter((deckId) => deckId !== id)
-    );
-  const toggleDeck = (id: number) =>
-    selectedDecks.includes(id) ? deselectDeck(id) : selectDeck(id);
+    socket.on("ROUND_WIN", handleRoundWin);
+  }, [socket]);
 
   return (
-    <div className="App">
-      <Stack spacing={4}>
-        <Heading>Cards Against Humanity</Heading>
-        <Heading size="md">Packs</Heading>
-        <Text>Select which packs you'd like to play with.</Text>
-        <Text fontSize="sm" fontWeight="bold">{`${selectedDecks.length} deck${
-          selectedDecks.length > 1 ? "s" : ""
-        } selected`}</Text>
-        <SimpleGrid columns={4} spacingY={4} spacingX={4}>
-          {decks &&
-            decks.map((deck: any) => (
-              <Deck
-                key={deck.id}
-                selected={selectedDecks.includes(deck.id)}
-                onClick={() => toggleDeck(deck.id)}
-                deck={deck}
-              />
-            ))}
-        </SimpleGrid>
-      </Stack>
-    </div>
+    <Modal isOpen={open} onClose={() => setOpen(false)}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalCloseButton />
+        <ModalBody>
+          <Flex
+            width="100%"
+            height="100%"
+            align="center"
+            justify="center"
+            p={4}
+          >
+            <Stack spacing={6}>
+              <Heading size="md">{`${winner?.name} Won!`}</Heading>
+              {cards && cards.map((card) => <Card type="white" card={card} />)}
+            </Stack>
+          </Flex>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
   );
 };
 

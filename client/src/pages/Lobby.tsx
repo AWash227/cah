@@ -31,7 +31,13 @@ export interface ILobby {
   owner: Player;
 }
 
-const Lobby = ({ gameState }: { gameState: GameState }) => {
+const Lobby = ({
+  gameState,
+  player,
+}: {
+  gameState: GameState;
+  player: Player | null;
+}) => {
   const socket: Socket | null = useContext(SocketContext);
 
   // After joining the lobby, get the player returned
@@ -42,7 +48,7 @@ const Lobby = ({ gameState }: { gameState: GameState }) => {
 
   return (
     <Box width="100%" height="100%">
-      <LobbyHeader />
+      <LobbyHeader player={player} />
       <Stack spacing={4} maxWidth="50rem" mx="auto">
         <LobbyJoinForm players={gameState.players} />
         <LobbySettings gameState={gameState} />
@@ -183,6 +189,11 @@ const LobbyJoinForm = ({
         )}
         {player && !players.map((player) => player.id).includes(player.id) && (
           <Button flex={1} colorScheme="blue" type="submit">
+            Join
+          </Button>
+        )}
+        {!player && (
+          <Button flex={1} colorScheme="blue" type="submit">
             Create Account
           </Button>
         )}
@@ -191,15 +202,22 @@ const LobbyJoinForm = ({
   );
 };
 
-const LobbyHeader = () => {
+const LobbyHeader = ({ player }: { player: Player | null }) => {
   return (
     <Box p={4}>
       <RandomCards />
       <Box mx="auto" maxWidth="50rem">
-        <Heading>{GAME_TITLE}</Heading>
-        <Text>A better version I think</Text>
-        <Text>Enter your name into the text box, and click join</Text>
-        <Text>When everyone is in, the lobby owner can start the game</Text>
+        <Stack spacing={3}>
+          <Box>
+            <Heading>{GAME_TITLE}</Heading>
+            <Text>A better version I think</Text>
+            <Text>Enter your name into the text box, and click join</Text>
+            <Text>When everyone is in, the lobby owner can start the game</Text>
+          </Box>
+          {player?.name && (
+            <Heading size="md">Welcome Back, {player.name}</Heading>
+          )}
+        </Stack>
       </Box>
     </Box>
   );

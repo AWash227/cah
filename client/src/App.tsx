@@ -87,7 +87,10 @@ function App() {
   return (
     <Box className="App" position="relative" overflow="hidden">
       <SocketContext.Provider value={socket}>
-        <Topbar />
+        <Topbar
+          inGame={gameState.rounds.length > 0}
+          players={gameState.players}
+        />
         <Game gameState={gameState} hand={hand} />
       </SocketContext.Provider>
     </Box>
@@ -181,7 +184,7 @@ const Game = ({
         </ModalContent>
       </Modal>
     );
-  else if (!round) return <Lobby gameState={gameState} />;
+  else if (!round) return <Lobby gameState={gameState} player={player} />;
 
   return (
     <Box position="relative" width="100%" height="100%" pt={4}>

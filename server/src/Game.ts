@@ -113,7 +113,7 @@ class CAH {
 
   constructor() {
     this.players = [];
-    this.maxScore = 1;
+    this.maxScore = 10;
     this.decks = [];
     this.owner = null;
     this.rounds = [];
@@ -154,7 +154,7 @@ class CAH {
 
   reset() {
     this.players = [];
-    this.maxScore = 1;
+    this.maxScore = 10;
     this.decks = [];
     this.currentRound = -1;
     this.owner = null;

@@ -23,12 +23,13 @@ const Card = (props: CardProps) => {
     <Box
       px={6}
       py={8}
+      paddingBottom={12}
       boxShadow="md"
       w={175}
       h={225}
       borderRadius={5}
-      bgColor={type === "white" ? "white" : "gray.600"}
-      color={type === "white" ? "gray.800" : "white"}
+      bgColor={type === "white" ? "white" : "gray.700"}
+      color={type === "white" ? "black" : "white"}
       position="relative"
       cursor="pointer"
       transform={`rotate(${random}deg)`}
@@ -99,11 +100,11 @@ const Card = (props: CardProps) => {
           width="100%"
           height="100%"
           overflowY="auto"
-          fontSize="sm"
+          fontSize="xs"
           fontWeight="bold"
           pb={card.pick ? 8 : 0}
         >
-          {card.text}
+          {card.text.replaceAll("_", "_____")}
         </Text>
       )}
       {card && card.pick && type === "black" && (

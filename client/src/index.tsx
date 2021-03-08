@@ -5,16 +5,23 @@ import "./index.css";
 import App from "./App";
 
 import reportWebVitals from "./reportWebVitals";
-import { ChakraProvider, CSSReset } from "@chakra-ui/react";
+import {
+  ChakraProvider,
+  CSSReset,
+  ThemeProvider,
+  theme,
+} from "@chakra-ui/react";
 
 ReactDOM.render(
   <React.StrictMode>
-    <ChakraProvider>
-      <BrowserRouter>
-        <CSSReset />
-        <App />
-      </BrowserRouter>
-    </ChakraProvider>
+    <ThemeProvider theme={theme}>
+      <ChakraProvider>
+        <BrowserRouter>
+          <CSSReset />
+          <App />
+        </BrowserRouter>
+      </ChakraProvider>
+    </ThemeProvider>
   </React.StrictMode>,
   document.getElementById("root")
 );

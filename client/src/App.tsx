@@ -34,6 +34,12 @@ import Lobby from "./pages/Lobby";
 import { getPlayerFromLocalStorage } from "./helpers";
 import { GamePlayer, GameState, Player, whitecard } from "./types";
 import { Socket } from "socket.io-client";
+import Toggle from "./components/Toggle";
+import RoundWinnerModal from "./components/RoundWInnerModal";
+import PlayerTable from "./components/PlayerTable";
+import Board from "./components/Game/Board";
+import InteractionArea from "./components/Game/InteractionArea";
+import Topbar from "./components/Topbar";
 
 const emptyGameState: GameState = {
   players: [],
@@ -81,6 +87,7 @@ function App() {
   return (
     <Box className="App" position="relative" overflow="hidden">
       <SocketContext.Provider value={socket}>
+        <Topbar />
         <Game gameState={gameState} hand={hand} />
       </SocketContext.Provider>
     </Box>
@@ -95,7 +102,6 @@ const Game = ({
   hand: whitecard[];
 }) => {
   const socket = useContext(SocketContext);
-  const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [player, setPlayer] = useState<Player | null>(null);
   const [roundWinModalOpen, setRoundWinModalOpen] = useState(false);
 
@@ -141,36 +147,6 @@ const Game = ({
     [socket, player]
   );
 
-  const handleCardSelect = (card: whitecard) => {
-    if (round.blackCard.pick === 1) {
-      setSelectedCards(
-        selectedCards.includes(card.id)
-          ? selectedCards.filter((id) => card.id !== id)
-          : [card.id]
-      );
-    } else {
-      const canAddCard =
-        !selectedCards?.includes(card.id) &&
-        round.blackCard.pick &&
-        selectedCards?.length < round.blackCard.pick;
-      setSelectedCards(
-        canAddCard
-          ? [...selectedCards, card.id]
-          : selectedCards?.filter((id) => card.id !== id)
-      );
-    }
-  };
-
-  const handleSubmitCard = useCallback(() => {
-    if (selectedCards.length === round.blackCard.pick) {
-      socket?.emit("SUBMIT_PLAY", {
-        playerId: player?.id,
-        cards: selectedCards,
-      });
-      setSelectedCards([]);
-    }
-  }, [socket, gameState, selectedCards]);
-
   const handleRestartGame = useCallback(() => {
     socket?.emit("RESTART_GAME");
   }, []);
@@ -190,7 +166,7 @@ const Game = ({
             >
               <Stack spacing={6}>
                 <Heading size="lg">{`${
-                  gameState.rounds[gameState.currentRound].winner
+                  gameState.rounds[gameState.currentRound].winner?.name
                 } Won!`}</Heading>
                 <Button
                   colorScheme="blue"
@@ -208,192 +184,26 @@ const Game = ({
   else if (!round) return <Lobby gameState={gameState} />;
 
   return (
-    <Box position="relative" width="100%" height="100%">
-      {/* Board Area */}
-      <Box width="100%">
-        <RoundWinnerModal />
-        <Stack spacing={2}>
-          <HStack spacing={2}>
-            <Box px={4}>
-              <Heading pb={4} size="md">
-                Black Card
-              </Heading>
-              {round.blackCard && <Card type="black" card={round.blackCard} />}
-            </Box>
-            {round.plays.map((play: any) => (
-              <HStack
-                key={play.playerId}
-                spacing={-50}
-                p={2}
-                borderRadius={5}
-                transition="all 0.25s ease-in-out"
-                _hover={{ outline: "3px solid", outlineColor: "blue.500" }}
-                onClick={() => handleCzarClick(play.playerId)}
-              >
-                {play.cards.map((card: any) => (
-                  <Card
-                    key={card.id}
-                    card={card}
-                    type="white"
-                    visible={round.playersLeft.length === 0}
-                  />
-                ))}
-              </HStack>
-            ))}
-          </HStack>
-        </Stack>
-      </Box>
+    <Box position="relative" width="100%" height="100%" pt={4}>
+      <Flex direction="column">
+        {/* Board Area */}
+        <Box flex={4}>
+          <Board round={round} handleCzarClick={handleCzarClick} />
+        </Box>
 
-      {/* Hand Area */}
-      <Box
-        width="100%"
-        maxH={300}
-        h={300}
-        position="absolute"
-        left={0}
-        bottom={0}
-        p={4}
-        bgColor="gray.100"
-      >
-        <Grid templateColumns={"1fr 3fr"}>
-          <Players
+        {/* Hand Area */}
+        <Box flex={1}>
+          <InteractionArea
             players={gameState.players}
-            isStillPlaying={(playerId: string): boolean =>
-              round.playersLeft.includes(playerId)
-            }
-            isCzar={(playerId: string): boolean => round.czar.id === playerId}
+            player={player}
+            round={round}
+            hand={hand}
+            roundNumber={gameState.currentRound}
+            maxScore={gameState.maxScore}
           />
-          {console.log("Players Left", round.playersLeft)}
-          <Box height="100%" position="relative">
-            {round.czar.id === player?.id ? (
-              <Flex width="100%" height="100%" justify="center" align="center">
-                <Text fontWeight="bold">You are the Card Czar</Text>
-              </Flex>
-            ) : player && !round.playersLeft.includes(player.id) ? (
-              <Flex width="100%" height="100%" justify="center" align="center">
-                <Text fontWeight="bold">
-                  You've already played a card this round.
-                </Text>
-              </Flex>
-            ) : (
-              <>
-                <Flex justify="space-between" align="center" p={2}>
-                  <Text fontWeight="bold">Your Cards</Text>
-                  <Button
-                    size="sm"
-                    colorScheme="blue"
-                    leftIcon={<Icon as={FaCheckDouble} />}
-                    onClick={handleSubmitCard}
-                  >
-                    Confirm Move
-                  </Button>
-                </Flex>
-
-                <Box height="100%">
-                  <Flex height="100%" justify="center">
-                    {hand &&
-                      player?.id &&
-                      hand.map((card, i) => (
-                        <Card
-                          key={card.id}
-                          card={card}
-                          onClick={() => handleCardSelect(card)}
-                          selected={selectedCards.includes(card.id)}
-                          index={
-                            selectedCards.findIndex(
-                              (sCard) => sCard === card.id
-                            ) + 1
-                          }
-                        />
-                      ))}
-                  </Flex>
-                </Box>
-              </>
-            )}
-          </Box>
-        </Grid>
-      </Box>
+        </Box>
+      </Flex>
     </Box>
-  );
-};
-
-const Players = ({
-  players,
-  isStillPlaying,
-  isCzar,
-}: {
-  players: GamePlayer[];
-  isStillPlaying: (playerId: string) => boolean;
-  isCzar: (playerId: string) => boolean;
-}) => {
-  return (
-    <Table size="sm">
-      <Thead>
-        <Tr>
-          <Th>Name</Th>
-          <Th>Score</Th>
-          <Th>Status</Th>
-        </Tr>
-      </Thead>
-      <Tbody>
-        {players.map((player) => (
-          <Tr key={player.id}>
-            <Td>{player.name}</Td>
-            <Td>{player.score}</Td>
-            <Td>
-              {isCzar(player.id)
-                ? "Card Czar"
-                : isStillPlaying(player.id)
-                ? "Playing"
-                : "Done"}
-            </Td>
-          </Tr>
-        ))}
-      </Tbody>
-    </Table>
-  );
-};
-
-const RoundWinnerModal = () => {
-  const Socket: Socket | null = useContext(SocketContext);
-  const [open, setOpen] = useState(false);
-  const [winner, setWinner] = useState<any>(null);
-  const [cards, setCards] = useState<any[]>([]);
-
-  const handleRoundWin = useCallback(
-    (args: { winner: any; cards: any[] }) => {
-      setWinner(args.winner);
-      setOpen(true);
-      setCards(args.cards);
-    },
-    [setWinner]
-  );
-
-  useEffect(() => {
-    socket.on("ROUND_WIN", handleRoundWin);
-  }, [socket]);
-
-  return (
-    <Modal isOpen={open} onClose={() => setOpen(false)}>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalCloseButton />
-        <ModalBody>
-          <Flex
-            width="100%"
-            height="100%"
-            align="center"
-            justify="center"
-            p={4}
-          >
-            <Stack spacing={6}>
-              <Heading size="md">{`${winner?.name} Won!`}</Heading>
-              {cards && cards.map((card) => <Card type="white" card={card} />)}
-            </Stack>
-          </Flex>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
   );
 };
 

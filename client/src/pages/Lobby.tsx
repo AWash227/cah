@@ -20,6 +20,7 @@ import { Socket } from "socket.io-client";
 import Card from "../components/Card";
 import Deck from "../components/Deck";
 import { getPlayerFromLocalStorage } from "../helpers";
+import { GAME_TITLE } from "../meta";
 import { SocketContext } from "../service";
 import { Deck as IDeck, GameState, Player } from "../types";
 
@@ -195,12 +196,10 @@ const LobbyHeader = () => {
     <Box p={4}>
       <RandomCards />
       <Box mx="auto" maxWidth="50rem">
-        <Heading>Cards Against Humanity</Heading>
+        <Heading>{GAME_TITLE}</Heading>
         <Text>A better version I think</Text>
         <Text>Enter your name into the text box, and click join</Text>
-        <Text>
-          When everyone is in, anyone can click start game to start it
-        </Text>
+        <Text>When everyone is in, the lobby owner can start the game</Text>
       </Box>
     </Box>
   );
@@ -231,14 +230,14 @@ const RandomCards = () => {
       <Card
         position="absolute"
         left={25}
-        top={25}
+        top={65}
         card={{ id: 0, text: "Your mom, lol", packId: 0 }}
         type="white"
       />
       <Card
         position="absolute"
         right={25}
-        top={25}
+        top={65}
         card={{ id: 0, text: "That feel when _", packId: 0, pick: 1 }}
         type="black"
       />

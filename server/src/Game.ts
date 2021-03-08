@@ -65,6 +65,11 @@ class Round {
       ),
     }); // We do this to ensure the proper sort order
 
+    // Now we shuffle the plays (not the cards) to prevent people from guessing who's play is who's
+    this.game.rounds[this.game.currentRound].plays.sort(
+      () => Math.random() - 0.5
+    );
+
     // Get player who played and remove cards played from their hand
     this.game.removeCards(play.playerId, play.cards);
 
@@ -72,26 +77,27 @@ class Round {
     this.playersLeft = this.playersLeft.filter((id) => id !== play.playerId);
   }
 
-  async judgeRound(playerId: string, judgedById: string) {
-    if (this.game.winner) return;
-    if (judgedById === this.czar.id) {
-      console.log("judging");
-      const winner = this.game.players.find((player) => player.id === playerId);
-      if (winner) {
-        this.winner = winner;
-        winner.score += 1;
-        if (winner.score >= this.game.maxScore) {
-          const potentialWinner = this.game.players.find(
-            (player) => player.id === playerId
-          );
-          if (potentialWinner) {
-            this.game.winner = potentialWinner;
-          }
-          this.game.endGame();
-        } else {
-          await this.game.addRound();
-        }
-      }
+  async judgeRound(playerId: string, judgedById: string): Promise<boolean> {
+    if (this.game.winner || judgedById !== this.czar.id) return false;
+    console.log("Judging Round");
+
+    const potentialWinner = this.game.players.find(
+      (player) => player.id === playerId
+    );
+    if (!potentialWinner) return false;
+
+    // Set score
+    this.winner = potentialWinner;
+    potentialWinner.score += 1;
+
+    // Check if they won the game
+    if (potentialWinner.score >= this.game.maxScore) {
+      this.game.winner = potentialWinner;
+      this.game.endGame();
+      return true;
+    } else {
+      await this.game.addRound();
+      return true;
     }
   }
 }

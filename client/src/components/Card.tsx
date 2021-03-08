@@ -14,10 +14,15 @@ interface CardProps extends BoxProps {
 const Card = (props: CardProps) => {
   const { card, selected, type = "white", visible = true } = props;
   const [random, setRandom] = useState(0);
+  const [pick, setPick] = useState<number | null>(null);
 
   useEffect(() => {
     setRandom(Math.random() * 5 * (Math.round(Math.random()) === 0 ? -1 : 1));
   }, []);
+
+  useEffect(() => {
+    setPick(card.pick ? card.pick : null);
+  }, [card.pick]);
 
   return (
     <Box
@@ -98,7 +103,6 @@ const Card = (props: CardProps) => {
       {visible && (
         <Text
           width="100%"
-          height="100%"
           overflowY="auto"
           fontSize="xs"
           fontWeight="bold"
@@ -107,7 +111,7 @@ const Card = (props: CardProps) => {
           {card.text.replaceAll("_", "_____")}
         </Text>
       )}
-      {card && card.pick && type === "black" && (
+      {pick && type === "black" && (
         <Text
           position="absolute"
           right={4}
@@ -116,7 +120,7 @@ const Card = (props: CardProps) => {
           fontWeight="bold"
           opacity="0.5"
         >
-          Pick {card.pick}
+          Pick {pick}
         </Text>
       )}
     </Box>

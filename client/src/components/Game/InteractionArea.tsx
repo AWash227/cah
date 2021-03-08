@@ -112,7 +112,15 @@ const Hand = (props: InteractionAreaProps) => {
         </Flex>
       ) : (
         <>
-          <Flex justify="space-between" align="center" p={2}>
+          <Flex
+            justify="space-between"
+            align="center"
+            width="100%"
+            p={2}
+            position="absolute"
+            top={0}
+            left={0}
+          >
             <Text fontWeight="bold">Your Cards</Text>
             <Button
               size="sm"
@@ -124,23 +132,21 @@ const Hand = (props: InteractionAreaProps) => {
             </Button>
           </Flex>
 
-          <Box height="100%">
-            <Flex height="100%" justify="center">
-              {hand &&
-                player?.id &&
-                hand.map((card, i) => (
-                  <Card
-                    key={card.id}
-                    card={card}
-                    onClick={() => handleCardSelect(card)}
-                    selected={selectedCards.includes(card.id)}
-                    index={
-                      selectedCards.findIndex((sCard) => sCard === card.id) + 1
-                    }
-                  />
-                ))}
-            </Flex>
-          </Box>
+          <Flex height="100%" justify="center" mt={10} p={4}>
+            {hand &&
+              player?.id &&
+              hand.map((card, i) => (
+                <Card
+                  key={card.id}
+                  card={card}
+                  onClick={() => handleCardSelect(card)}
+                  selected={selectedCards.includes(card.id)}
+                  index={
+                    selectedCards.findIndex((sCard) => sCard === card.id) + 1
+                  }
+                />
+              ))}
+          </Flex>
         </>
       )}
     </Box>

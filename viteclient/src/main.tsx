@@ -4,6 +4,10 @@ import "./index.css";
 import App from "./App";
 import { theme, ThemeProvider, ChakraProvider } from "@chakra-ui/react";
 import { BrowserRouter as Router } from "react-router-dom";
+import { GAME_TITLE } from "./App/config";
+
+const title: string = String(GAME_TITLE);
+document.title = title ?? "Cards";
 
 ReactDOM.render(
   <React.StrictMode>

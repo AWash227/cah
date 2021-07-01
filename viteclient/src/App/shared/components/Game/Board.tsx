@@ -4,7 +4,7 @@ import RoundWinnerModal from "../RoundWInnerModal";
 import { Round } from "../../types";
 import Card from "../Card";
 import { FaCheckDouble } from "react-icons/fa";
-import { getPlayerFromLocalStorage } from "../../helpers";
+import { default as getPlayerFromLocalStorage } from "../../utils/getPlayer";
 
 const Board = ({
   round,

@@ -17,12 +17,11 @@ import {
 } from "@chakra-ui/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
-import Card from "../components/Card";
-import Deck from "../components/Deck";
-import { getPlayerFromLocalStorage } from "../helpers";
-import { GAME_TITLE } from "../meta";
-import { SocketContext } from "../service";
-import { Deck as IDeck, GameState, Player } from "../types";
+import Card from "../shared/components/Card";
+import Deck from "../shared/components/Deck";
+import { default as getPlayerFromLocalStorage } from "../shared/utils/getPlayer";
+import { GAME_TITLE, SocketContext } from "../config";
+import { Deck as IDeck, GameState, Player } from "../shared/types";
 
 export interface ILobby {
   decks: IDeck[];

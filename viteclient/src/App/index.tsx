@@ -1,45 +1,23 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import "./App.css";
+import "./index.css";
 import {
   Box,
   Button,
   Flex,
-  Grid,
   Heading,
-  HStack,
-  Icon,
-  Input,
   Modal,
   ModalBody,
-  ModalCloseButton,
   ModalContent,
   ModalOverlay,
-  SimpleGrid,
   Stack,
-  Table,
-  Tbody,
-  Td,
-  Text,
-  Th,
-  Thead,
-  Tr,
-  useTimeout,
 } from "@chakra-ui/react";
-import axios from "axios";
-import Deck from "./components/Deck";
-import Card from "./components/Card";
-import { FaCheckDouble } from "react-icons/fa";
-import { SocketContext, socket } from "./service";
+import { SocketContext, socket } from "./config";
 import Lobby from "./pages/Lobby";
-import { getPlayerFromLocalStorage } from "./helpers";
-import { GamePlayer, GameState, Player, whitecard } from "./types";
-import { Socket } from "socket.io-client";
-import Toggle from "./components/Toggle";
-import RoundWinnerModal from "./components/RoundWInnerModal";
-import PlayerTable from "./components/PlayerTable";
-import Board from "./components/Game/Board";
-import InteractionArea from "./components/Game/InteractionArea";
-import Topbar from "./components/Topbar";
+import { default as getPlayerFromLocalStorage } from "./shared/utils/getPlayer";
+import { GameState, Player, whitecard } from "./shared/types";
+import Board from "./shared/components/Game/Board";
+import InteractionArea from "./shared/components/Game/InteractionArea";
+import Topbar from "./shared/components/Topbar";
 
 const emptyGameState: GameState = {
   players: [],

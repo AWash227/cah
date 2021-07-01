@@ -1,6 +1,6 @@
-import { Player } from "./types";
+import { Player } from "../types";
 
-export const getPlayerFromLocalStorage = (): Player | null => {
+const getPlayerFromLocalStorage = (): Player | null => {
   if (typeof window.localStorage.getItem("player") !== "undefined") {
     const possiblePlayer = window.localStorage.getItem("player");
     if (possiblePlayer) {
@@ -9,3 +9,5 @@ export const getPlayerFromLocalStorage = (): Player | null => {
   }
   return null;
 };
+
+export default getPlayerFromLocalStorage;

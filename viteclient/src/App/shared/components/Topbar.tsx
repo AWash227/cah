@@ -1,8 +1,8 @@
 import { Box, Button, Flex, Heading, HStack, Icon } from "@chakra-ui/react";
 import React from "react";
 import { FaBong } from "react-icons/fa";
-import { getPlayerFromLocalStorage } from "../helpers";
-import { GAME_TITLE } from "../meta";
+import { default as getPlayerFromLocalStorage } from "../utils/getPlayer";
+import { GAME_TITLE } from "../../config";
 import { GamePlayer } from "../types";
 import Toggle from "./Toggle";
 

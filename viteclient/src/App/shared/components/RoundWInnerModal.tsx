@@ -11,7 +11,7 @@ import {
 } from "@chakra-ui/react";
 import Card from "./Card";
 import { Socket } from "socket.io-client";
-import { SocketContext } from "../service";
+import { SocketContext } from "../../config";
 
 const RoundWinnerModal = () => {
   const socket: Socket | null = useContext(SocketContext);

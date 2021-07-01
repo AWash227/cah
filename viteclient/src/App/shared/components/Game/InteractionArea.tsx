@@ -13,7 +13,7 @@ import {
 import PlayerTable from "../PlayerTable";
 import { GamePlayer, Player, Round, whitecard } from "../../types";
 import { FaCheckDouble } from "react-icons/fa";
-import { SocketContext } from "../../service";
+import { SocketContext } from "../../../config";
 import Card from "../Card";
 
 export interface InteractionAreaProps {

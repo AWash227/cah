@@ -29,4 +29,4 @@ io.on("connection", (socket: Socket) => {
   handleGameRequests(game, io, socket);
 });
 
-httpServer.listen(3001);
+httpServer.listen(3005);
